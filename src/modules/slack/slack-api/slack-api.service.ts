@@ -142,8 +142,8 @@ export class SlackApiService {
   async getUserInfo(params: GetUserInfo) {
 
     try {
-      const registro = await this._session.findByUser(params.userId);
-      const result = await this.client.users.info({ user: registro.user_id });
+      //const registro = await this._session.findByUser(params.userId);
+      const result = await this.client.users.info({ user: params.userId });
       return { display_name: result.user?.profile?.display_name, real_name: result.user?.profile?.real_name, email: result.user?.profile?.email }
       console.log(result.user?.profile?.first_name);
     } catch (error) {

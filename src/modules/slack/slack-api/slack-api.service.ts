@@ -1,8 +1,13 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { WebClient } from '@slack/web-api';
 import { SessionService } from 'src/modules/db/session/session.service';
-import { GetUserInfo } from './dto/slack-api.dto';
+import { EnviarExcel, GetUserInfo } from './dto/slack-api.dto';
 import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import * as fs from 'fs';
+import * as XLSX from 'xlsx';
+import { GetConsultaParams } from 'src/modules/consulta-api/dto/consulta-api.dto';
+
 
 
 @Injectable()
@@ -16,6 +21,102 @@ export class SlackApiService {
     private readonly _session: SessionService, private readonly httpService: HttpService) {
     this.client = new WebClient(`${process.env.SLACK_BOT_TOKEN}`);
   }
+
+
+  private previewBodyFromArrayBuffer(ab: ArrayBuffer): string {
+    try {
+      return Buffer.from(ab).toString('utf8').slice(0, 400);
+    } catch {
+      return '[binario no imprimible]';
+    }
+  }
+
+  async enviarExcelDesdeApi(
+    params: EnviarExcel,
+
+  ) {
+    const nombreArchivo = 'reporte-horas.xls';
+    // 1) descargar el excel (mismo patrón que sí te funcionó)
+
+    const url = `http://webappcgprod.azurewebsites.net/api/GetExcelTareas/${params.idProyecto}/${params.fechaDesde}/${params.fechaHasta}/${params.idUsuario}/${params.horasExtras}`
+
+    const res$ = this.httpService.get<ArrayBuffer>(url, {
+      responseType: 'arraybuffer',
+      headers: {
+        // el WS devuelve .xls
+        Accept:
+          'application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      },
+      validateStatus: () => true,
+    });
+
+    const res = await firstValueFrom(res$);
+
+    if (res.status < 200 || res.status >= 300) {
+      const preview = this.previewBodyFromArrayBuffer(res.data);
+      throw new HttpException(
+        `HTTP ${res.status} - ${preview}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // 👇 igual que en tu prueba: sin Uint8Array extra
+    const buffer = Buffer.from(res.data);
+
+    // 2) asegurar canal real
+    let channel_id = params.user;
+
+    if (channel_id.startsWith('U')) {
+      const im = await this.client.conversations.open({ users: channel_id });
+
+      if (!im.ok) {
+        this.logger.error('No pude abrir el DM:', im);
+        throw new Error(
+          `No pude abrir el DM con el usuario: ${(im as any).error}`,
+        );
+      }
+
+      channel_id = (im.channel as any).id; // ahora es D...
+    }
+
+    // 3) subir el archivo a Slack
+    const uploadRes = await this.client.files.uploadV2({
+      channel_id,
+      file: buffer,               // 👈 binario tal cual
+      filename: nombreArchivo,    // 👈 .xls
+      title: ':bar_chart: Reporte de horas',
+      initial_comment: 'Aquí está tu reporte en Excel 👇',
+    });
+
+    this.logger.log('uploadRes: ' + JSON.stringify(uploadRes, null, 2));
+
+    if (!uploadRes.ok) {
+      throw new Error(`Slack no aceptó el archivo: ${uploadRes.error}`);
+    }
+
+    // 4) enviar mensajito con link
+    const fileWrapper = (uploadRes as any).files?.[0];
+    const file = fileWrapper?.files?.[0];
+
+    if (file) {
+      await this.client.chat.postMessage({
+        channel: channel_id,
+        text: '📎 Reporte generado',
+        attachments: [
+          {
+            text: 'Descarga el Excel aquí',
+            title: file.name ?? nombreArchivo,
+            title_link: file.permalink,
+          },
+        ],
+      });
+    } else {
+      this.logger.warn(
+        'No vino el archivo dentro de uploadRes.files[0].files[0]',
+      );
+    }
+  }
+
 
   async sendMessage() {
     return await this.client.chat.postMessage({
@@ -102,20 +203,16 @@ export class SlackApiService {
       };
     }
   }
-
-  async processInteraction(payload: any): Promise<void> {
+  async processInteraction(payload: any) {
     try {
-      const user = payload.user?.username || payload.user?.name;
+      const user = payload.user?.username || payload.user?.name || payload.user?.id;
       const action = payload.actions?.[0];
       const actionId = action?.action_id;
       const value = action?.value;
       const responseUrl = payload.response_url;
 
-      this.logger.log(`🎯 Acción: ${actionId}`);
-      this.logger.log(`👤 Usuario: ${user}`);
-      this.logger.log(`📦 Valor: ${value}`);
+      this.logger.log(`Acción: ${actionId} por ${user}`);
 
-      // Determinar texto de respuesta según acción
       let text = '';
       if (actionId === 'aprobar_hora_extra') {
         text = `✅ ${user} aprobó las horas extra (${value}).`;
@@ -125,19 +222,79 @@ export class SlackApiService {
         text = `🤖 ${user} ejecutó la acción ${actionId}.`;
       }
 
-      // Enviar mensaje a Slack (response_url)
+      // 👇 aquí es la magia: reemplazamos el mensaje original
       if (responseUrl) {
         await this.httpService.axiosRef
           .post(responseUrl, {
-            text,
-            replace_original: false, // false = agrega nuevo mensaje, true = reemplaza el original
+            replace_original: true,        // <- quita el mensaje anterior
+            text,                          // texto plano (por si Slack no muestra blocks)
+            blocks: [
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text,
+                },
+              },
+              // 👇 ya NO ponemos el bloque "actions"
+            ],
           });
       }
-
-      this.logger.log('✅ Interacción procesada correctamente.');
-    } catch (error) {
-      this.logger.error('⚠️ Error procesando interacción de Slack:', error);
+    } catch (err) {
+      this.logger.error('Error procesando interacción', err);
     }
+  }
+
+
+
+  async probarDescargaExcel(): Promise<void> {
+    const url =
+      'http://webappcgprod.azurewebsites.net/api/GetExcelTareas/T/20251013/20251021/268,557/false';
+
+    const res = await firstValueFrom(
+      this.httpService.get<ArrayBuffer>(url, {
+        responseType: 'arraybuffer',
+        headers: {
+          // tu WS ya devuelve .xls aunque le pidas xlsx
+          Accept:
+            'application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        },
+        validateStatus: () => true,
+      }),
+    );
+
+    if (res.status < 200 || res.status >= 300) {
+      const preview = this.previewBodyFromArrayBuffer(res.data);
+      throw new HttpException(
+        `HTTP ${res.status} - ${preview}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // 👇 esto es el binario tal cual lo da el WS (formato .xls)
+    const buffer = Buffer.from(res.data);
+
+    this.logger.log(`status: ${res.status}`);
+    this.logger.log(`content-type: ${res.headers['content-type']}`);
+    this.logger.log(`size: ${buffer.length}`);
+
+    // 👉 OJO: guardar como .xls, no .xlsx
+    const filename = 'reporte-prueba.xls';
+    fs.writeFileSync(filename, buffer);
+    this.logger.log(`✅ Archivo guardado como ${filename}`);
+
+    // si por alguna razón viniera HTML, lo vemos
+    if (
+      res.headers['content-type'] &&
+      res.headers['content-type'].includes('text/html')
+    ) {
+      this.logger.warn(
+        '⚠️ El servidor devolvió HTML, no Excel:\n' +
+        buffer.toString('utf8').slice(0, 300),
+      );
+    }
+
+    this.logger.log('✅ Descarga terminada.');
   }
 
 

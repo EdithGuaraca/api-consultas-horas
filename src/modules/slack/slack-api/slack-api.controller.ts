@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpStatus, Res } from '@nestjs/common';
 import { SlackApiService } from './slack-api.service';
-import { GetUserInfo } from './dto/slack-api.dto';
+import { EnviarExcel, GetUserInfo } from './dto/slack-api.dto';
 import { Response } from 'express';
+import { GetConsultaParams } from 'src/modules/consulta-api/dto/consulta-api.dto';
 
 
 @Controller('slack-api')
@@ -23,6 +24,7 @@ export class SlackApiController {
   async sendBotones() {
     return this._slackApiService.sendMessageWithButtons();
   }
+
   @Post()
   async handleInteraction(@Body() body: any, @Res() res: Response) {
     try {
@@ -40,7 +42,10 @@ export class SlackApiController {
         .json({ ok: false, message: error.message });
     }
   }
-
+  @Get('/enviarExcel')
+  async enviarExcel(@Query() params: EnviarExcel) {
+    return this._slackApiService.enviarExcelDesdeApi(params);
+  }
 
 
 }

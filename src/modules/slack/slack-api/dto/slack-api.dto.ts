@@ -1,3 +1,4 @@
+import { GetConsultaParams } from "src/modules/consulta-api/dto/consulta-api.dto";
 
 
 export class GetUserInfo {
@@ -6,3 +7,6 @@ export class GetUserInfo {
 
 }
 
+export class EnviarExcel extends GetConsultaParams {
+  user: string;
+}

@@ -144,7 +144,7 @@ export class SlackApiService {
     try {
       const registro = await this._session.findByUser(params.userId);
       const result = await this.client.users.info({ user: registro.user_id });
-      return { nombreUsuario: result.user?.profile?.display_name }
+      return { display_name: result.user?.profile?.display_name, real_name: result.user?.profile?.real_name, email: result.user?.profile?.email }
       console.log(result.user?.profile?.first_name);
     } catch (error) {
       console.log('**Error en desencriptar: ', error, '**');

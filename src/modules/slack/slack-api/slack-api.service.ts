@@ -123,7 +123,7 @@ export class SlackApiService {
     }
 
     console.log(`:bar_chart: Reporte de horas ${params.fechaDesde}/${params.fechaHasta}`,
-      initial_comment: `${params.remitente} te envía el reporte en Excel del registro de horas 📊
+      `${params.remitente} te envía el reporte en Excel del registro de horas 📊
 📅 Fechas: ${params.fechaDesde} - ${params.fechaHasta}
 👤 Usuario: ${usuario}
 📁 Proyecto: ${proyecto}

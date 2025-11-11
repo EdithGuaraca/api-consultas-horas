@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import * as fs from 'fs';
 import * as XLSX from 'xlsx';
 import { GetConsultaParams } from 'src/modules/consulta-api/dto/consulta-api.dto';
+import { threadId } from 'worker_threads';
 
 
 
@@ -63,8 +64,12 @@ export class SlackApiService {
     // 👇 igual que en tu prueba: sin Uint8Array extra
     const buffer = Buffer.from(res.data);
 
-    // 2) asegurar canal real
+    // 2) parametros de consulta
     let channel_id = params.user;
+    let threadId = params.thread;
+    let usuario = params.idUsuario === 'T' ? 'todos' : params.idUsuario;
+    let proyecto = params.idProyecto === 'T' ? 'todos' : params.idProyecto;
+    let horasExtras = params.horasExtras === 'true' ? 'incluye horas extras' : 'no incluye horas extras';
 
     if (channel_id.startsWith('U')) {
       const im = await this.client.conversations.open({ users: channel_id });
@@ -80,41 +85,75 @@ export class SlackApiService {
     }
 
     // 3) subir el archivo a Slack
-    const uploadRes = await this.client.files.uploadV2({
+    // const uploadRes = await this.client.files.uploadV2({
+    //   channel_id,
+    //   file: buffer,               // 👈 binario tal cual
+    //   filename: nombreArchivo,    // 👈 .xls
+    //   title: `:bar_chart: Reporte de horas${params.fechaDesde}/${params.fechaHasta}`,
+    //   initial_comment: `${params.remitente} te envía el reporte en excel del registro de horas 📊
+    //     📅 Fechas: ${params.fechaDesde} - ${params.fechaHasta}
+    //     👤 Usuario: ${usuario}
+    //     📁 Proyecto: ${proyecto}
+    //     ⏱️ ${horasExtras}`,
+    //   thread_ts: threadId,
+    // });
+
+
+    const basePayload = {
       channel_id,
-      file: buffer,               // 👈 binario tal cual
-      filename: nombreArchivo,    // 👈 .xls
-      title: ':bar_chart: Reporte de horas',
-      initial_comment: 'Aquí está tu reporte en Excel 👇',
-    });
+      file: buffer,
+      filename: nombreArchivo,
+      title: `:bar_chart: Reporte de horas ${params.fechaDesde}/${params.fechaHasta}`,
+      initial_comment: `${params.remitente} te envía el reporte en Excel del registro de horas 📊
+📅 Fechas: ${params.fechaDesde} - ${params.fechaHasta}
+👤 Usuario: ${usuario}
+📁 Proyecto: ${proyecto}
+⏱️ ${horasExtras}`,
+    };
 
-    this.logger.log('uploadRes: ' + JSON.stringify(uploadRes, null, 2));
-
-    if (!uploadRes.ok) {
-      throw new Error(`Slack no aceptó el archivo: ${uploadRes.error}`);
-    }
-
-    // 4) enviar mensajito con link
-    const fileWrapper = (uploadRes as any).files?.[0];
-    const file = fileWrapper?.files?.[0];
-
-    if (file) {
-      await this.client.chat.postMessage({
-        channel: channel_id,
-        text: '📎 Reporte generado',
-        attachments: [
-          {
-            text: 'Descarga el Excel aquí',
-            title: file.name ?? nombreArchivo,
-            title_link: file.permalink,
-          },
-        ],
+    if (threadId) {
+      // 👇 aquí sí le decimos explícitamente que va al hilo
+      await this.client.files.uploadV2({
+        ...basePayload,
+        thread_ts: threadId,
       });
     } else {
-      this.logger.warn(
-        'No vino el archivo dentro de uploadRes.files[0].files[0]',
-      );
+      // 👇 aquí solo al canal
+      await this.client.files.uploadV2(basePayload);
     }
+
+
+
+
+
+    // this.logger.log('uploadRes: ' + JSON.stringify(uploadRes, null, 2));
+
+    // if (!uploadRes.ok) {
+    //   throw new Error(`Slack no aceptó el archivo: ${uploadRes.error}`);
+    // }
+
+    // // 4) enviar mensajito con link
+    // const fileWrapper = (uploadRes as any).files?.[0];
+    // const file = fileWrapper?.files?.[0];
+
+    // if (file) {
+    //   await this.client.chat.postMessage({
+    //     channel: channel_id,
+    //     text: '📎 Reporte generado',
+    //     thread_ts: threadId,
+    //     attachments: [
+    //       {
+    //         text: 'Descarga el Excel aquí',
+    //         title: file.name ?? nombreArchivo,
+    //         title_link: file.permalink,
+    //       },
+    //     ],
+    //   });
+    // } else {
+    //   this.logger.warn(
+    //     'No vino el archivo dentro de uploadRes.files[0].files[0]',
+    //   );
+    // }
   }
 
 
@@ -298,4 +337,8 @@ export class SlackApiService {
   }
 
 
+
+
 }
+
+

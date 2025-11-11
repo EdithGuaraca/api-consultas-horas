@@ -98,7 +98,7 @@ export class SlackApiService {
     //   thread_ts: threadId,
     // });
 
-
+    let uploadRes;
     const basePayload = {
       channel_id,
       file: buffer,
@@ -113,14 +113,30 @@ export class SlackApiService {
 
     if (threadId) {
       // 👇 aquí sí le decimos explícitamente que va al hilo
-      await this.client.files.uploadV2({
+      uploadRes = await this.client.files.uploadV2({
         ...basePayload,
         thread_ts: threadId,
       });
     } else {
       // 👇 aquí solo al canal
-      await this.client.files.uploadV2(basePayload);
+      uploadRes = await this.client.files.uploadV2(basePayload);
     }
+
+    if (!uploadRes.ok) {
+      throw new Error(`Slack no aceptó el archivo: ${uploadRes.error}`);
+    }
+
+    // 👇 obtenemos el link directo al archivo
+    const fileUrl = uploadRes.files?.[0]?.permalink || uploadRes.file?.permalink;
+
+    // Enviamos mensaje adicional o editamos el original
+    await this.client.chat.postMessage({
+      channel: channel_id,
+      thread_ts: threadId,
+      text: `📎 [Haz clic aquí para descargar el archivo Excel](${fileUrl})`,
+    });
+
+
 
     console.log(`${params.user}-${params.thread}`,
       `${params.remitente} te envía el reporte en Excel del registro de horas 📊

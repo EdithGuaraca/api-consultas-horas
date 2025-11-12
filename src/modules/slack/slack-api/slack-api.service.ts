@@ -98,48 +98,28 @@ export class SlackApiService {
     //   thread_ts: threadId,
     // });
 
-    let uploadRes;
     const basePayload = {
       channel_id,
       file: buffer,
       filename: nombreArchivo,
       title: `:bar_chart: Reporte de horas ${params.fechaDesde}/${params.fechaHasta}`,
-      initial_comment: `${params.remitente} te envía el reporte en Excel del registro de horas 📊
+      initial_comment: `Aquí tienes el reporte en Excel del registro de horas 📊
 📅 Fechas: ${params.fechaDesde} - ${params.fechaHasta}
 👤 Usuario: ${usuario}
 📁 Proyecto: ${proyecto}
 ⏱️ ${horasExtras}`,
     };
 
+
     if (threadId) {
-      // 👇 aquí sí le decimos explícitamente que va al hilo
-      uploadRes = await this.client.files.uploadV2({
-        ...basePayload,
-        thread_ts: threadId,
-      });
+      await this.client.files.uploadV2({ ...basePayload, thread_ts: threadId });
     } else {
-      // 👇 aquí solo al canal
-      uploadRes = await this.client.files.uploadV2(basePayload);
+      await this.client.files.uploadV2(basePayload);
     }
-
-    if (!uploadRes.ok) {
-      throw new Error(`Slack no aceptó el archivo: ${uploadRes.error}`);
-    }
-
-    // 👇 obtenemos el link directo al archivo
-    const fileUrl = uploadRes.files?.[0]?.permalink || uploadRes.file?.permalink;
-
-    // Enviamos mensaje adicional o editamos el original
-    await this.client.chat.postMessage({
-      channel: channel_id,
-      thread_ts: threadId,
-      text: `📎 [Haz clic aquí para descargar el archivo Excel](${fileUrl})`,
-    });
-
 
 
     console.log(`${params.user}-${params.thread}`,
-      `${params.remitente} te envía el reporte en Excel del registro de horas 📊
+      `Aquí tienes el reporte en Excel del registro de horas 📊
 📅 Fechas: ${params.fechaDesde} - ${params.fechaHasta}
 👤 Usuario: ${usuario}
 📁 Proyecto: ${proyecto}

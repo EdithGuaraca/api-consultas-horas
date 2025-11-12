@@ -10,5 +10,4 @@ export class GetUserInfo {
 export class EnviarExcel extends GetConsultaParams {
   user: string;
   thread: string;
-  remitente: string;
 }

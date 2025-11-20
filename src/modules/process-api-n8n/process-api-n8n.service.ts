@@ -168,7 +168,6 @@ export class ProcessApiN8nService {
           const fechaAyer = `${yyyy}${mm}${dd}`; // formato de parametro 20251118
 
           const horas = await this._consultaApiService.consultarHorasParams({ fechaDesde: fechaAyer, fechaHasta: fechaAyer, horasExtras: 'false', idProyecto: 'T', idUsuario: userId.id_cg.toString() })
-          console.log(`El usuario ${userId.display_name}-${userId.id_cg} tiene ${horas.count} registros de la fecha: ${fechaAyer}`);
           const recordatorios = [
             `🔴🔴 Hola ${userId.real_name} 👋, notamos que aún no has cargado tus tareas de ayer. Cuando puedas, súbelas para mantener tu registro al día. ⏰🗓️`,
             `🔴🔴 Hola ${userId.real_name} 👋, te recordamos que no registraste tus tareas del día anterior. Por favor, actualízalas para que tu progreso quede completo. ⏰🗓️`,
@@ -194,10 +193,10 @@ export class ProcessApiN8nService {
             if (horas.count == 0) {
 
               await this._slackApiService.postMessage({ canal: userId.user, texto: `${recordatorios[indexR]}` });
-
+              console.log(`${recordatorios[indexR]}`)
             } else {
               await this._slackApiService.postMessage({ canal: userId.user, texto: `${felicitaciones[indexR]}` });
-
+              console.log(`${felicitaciones[indexR]}`)
             }
           }
           await this.delay(1000); //1s rate-limit

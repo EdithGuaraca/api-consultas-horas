@@ -91,17 +91,17 @@ export class ProcessApiN8nService {
           is_email_confirmed: true,
           id_cg: 250
         },
-        {
-          user: 'UF22Q8EQM',
-          name: 'amolina',
-          real_name: 'Andres Molina',
-          first_name: 'Andres',
-          last_name: 'Molina',
-          display_name: 'Andres Molina',
-          email: 'amolina@consultoriaglobal.com.ar',
-          is_email_confirmed: true,
-          id_cg: 268
-        },
+        // {
+        //   user: 'UF22Q8EQM',
+        //   name: 'amolina',
+        //   real_name: 'Andres Molina',
+        //   first_name: 'Andres',
+        //   last_name: 'Molina',
+        //   display_name: 'Andres Molina',
+        //   email: 'amolina@consultoriaglobal.com.ar',
+        //   is_email_confirmed: true,
+        //   id_cg: 268
+        // },
 
       ]
 

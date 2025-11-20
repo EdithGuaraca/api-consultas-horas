@@ -49,3 +49,14 @@ export class GetConsultaParams {
   @IsBoolean({ message: 'horasExtras debe ser true o false' })
   horasExtras: string;
 }
+
+export class GetUsuariosListadoDto {
+  id_usuario: number;
+  nombre: string;
+  apellido: string;
+  nombre_apellido: string;
+  mail: string;
+  activo: boolean;
+
+}
+

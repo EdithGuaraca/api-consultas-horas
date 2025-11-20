@@ -2,9 +2,9 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
 import * as XLSX from 'xlsx';
-
 import { v4 as uuidv4 } from 'uuid';
-import { GetConsultaParams } from './dto/consulta-api.dto';
+import { GetConsultaParams, GetUsuariosListadoDto } from './dto/consulta-api.dto';
+import { ApiConsultoriaGService } from '../api-consultoria-g/api-consultoria-g.service';
 
 
 @Injectable()
@@ -12,6 +12,7 @@ export class ConsultaApiService {
 
   constructor(
     private readonly httpService: HttpService,
+    private readonly _apiConsultoriaGService: ApiConsultoriaGService,
 
   ) { }
 
@@ -125,6 +126,40 @@ export class ConsultaApiService {
       }
       const resp = Buffer.from(res.data);
       return resp;
+
+    } catch (error) {
+      throw new HttpException(
+        error.message ? error.message : "Error en descargarHorasExcelParams",
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  async getUsuariosActivos() {
+    try {
+      const usuariosListado = await this._apiConsultoriaGService.getUsuariosListado();
+      const usuariosListadoCompleto = await this._apiConsultoriaGService.getUsuariosListadoCompleto();
+      const listActivos: GetUsuariosListadoDto[] = [];
+
+      for (const i of usuariosListadoCompleto.Dato) {
+        usuariosListado.Dato.find(e => {
+          if (e.nombreApellido === i.nombre_apellido) {
+            const usuario: GetUsuariosListadoDto = {
+              id_usuario: i.id_usuario,
+              nombre: i.nombre,
+              apellido: i.apellido,
+              nombre_apellido: i.nombre_apellido,
+              mail: i.mail,
+              activo: i.activo
+            }
+            listActivos.push(usuario);
+          }
+        })
+
+
+      }
+
+      return listActivos;
 
     } catch (error) {
       throw new HttpException(

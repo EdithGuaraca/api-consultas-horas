@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpStatus, R
 import { SlackApiService } from './slack-api.service';
 import { EnviarExcel, GetUserInfo } from './dto/slack-api.dto';
 import { Response } from 'express';
-import { GetConsultaParams } from 'src/modules/consulta-api/dto/consulta-api.dto';
+import { GetConsultaParams } from 'src/modules/consulta-api-cg/dto/consulta-api.dto';
 
 
 @Controller('slack-api')

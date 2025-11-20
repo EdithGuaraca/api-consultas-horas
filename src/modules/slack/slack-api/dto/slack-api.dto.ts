@@ -1,4 +1,4 @@
-import { GetConsultaParams } from "src/modules/consulta-api/dto/consulta-api.dto";
+import { GetConsultaParams } from "src/modules/consulta-api-cg/dto/consulta-api.dto";
 
 
 export class GetUserInfo {
@@ -10,4 +10,18 @@ export class GetUserInfo {
 export class EnviarExcel extends GetConsultaParams {
   user: string;
   thread: string;
+}
+
+export class PostMessageDto {
+  canal: string;
+  texto: string;
+
+}
+
+export class ConversationOpenDto {
+  users: string;
+}
+
+export class LookupByEmailDto {
+  email: string;
 }

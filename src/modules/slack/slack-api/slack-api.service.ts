@@ -1,12 +1,12 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { WebClient } from '@slack/web-api';
 import { SessionService } from 'src/modules/db/session/session.service';
-import { EnviarExcel, GetUserInfo } from './dto/slack-api.dto';
+import { ConversationOpenDto, EnviarExcel, GetUserInfo, LookupByEmailDto, PostMessageDto } from './dto/slack-api.dto';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as fs from 'fs';
 import * as XLSX from 'xlsx';
-import { GetConsultaParams } from 'src/modules/consulta-api/dto/consulta-api.dto';
+import { GetConsultaParams } from 'src/modules/consulta-api-cg/dto/consulta-api.dto';
 import { threadId } from 'worker_threads';
 
 
@@ -22,6 +22,9 @@ export class SlackApiService {
     private readonly _session: SessionService, private readonly httpService: HttpService) {
     this.client = new WebClient(`${process.env.SLACK_BOT_TOKEN}`);
   }
+
+
+
 
 
   private previewBodyFromArrayBuffer(ab: ArrayBuffer): string {
@@ -339,6 +342,77 @@ export class SlackApiService {
   }
 
 
+
+  //api de envío de mensajes
+
+
+  async postMessage(params: PostMessageDto) {
+    try {
+
+      const resultado = await this.client.chat.postMessage({
+        channel: params.canal,
+        text: params.texto
+      });
+
+      return resultado;
+
+    } catch (error) {
+      throw new HttpException(
+        error.message ? `Error en postMessage: ${error.message}` : "Error en postMessage",
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  //api para obtener channel mediante usuario
+  async conversationOpen(params: ConversationOpenDto) {
+    try {
+      const resultado = await this.client.conversations.open({ users: params.users });
+      return resultado;
+
+    } catch (error) {
+      throw new HttpException(
+        error.message ? `Error en conversationOpen: ${error.message}` : "Error en conversationOpen",
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  //api para obtener la data usando mail como parametro
+
+  // api para obtener la data usando mail como parametro
+  async lookupByEmail(params: LookupByEmailDto) {
+    try {
+      const resultado = await this.client.users.lookupByEmail({
+        email: params.email,
+      });
+
+      // si llegó aquí es porque NO hubo error (usuario encontrado)
+      return resultado; // resultado.user...
+
+    } catch (error: any) {
+      // 👇 AQUÍ se maneja el caso de usuario no encontrado
+      const slackError = error?.data?.error ?? error?.message;
+
+      if (slackError === 'users_not_found') {
+        this.logger.warn(
+          `Slack users.lookupByEmail: usuario no encontrado para ${params.email}`,
+        );
+        // 🔹 No lanzamos excepción, devolvemos null para que el flujo siga
+        return null;
+      }
+
+      // 👇 Cualquier otro error sí es excepción
+      this.logger.error(
+        `Error en lookupByEmail(${params.email}): ${slackError}`,
+      );
+
+      throw new HttpException(
+        `Error en lookupByEmail: ${slackError}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
 
 
 }

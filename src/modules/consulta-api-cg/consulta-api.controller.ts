@@ -4,7 +4,9 @@ import { GetConsultaParams } from './dto/consulta-api.dto';
 @UsePipes(ValidationPipe)
 @Controller('consulta-api')
 export class ConsultaApiController {
-  constructor(private readonly consultaApiService: ConsultaApiService) { }
+  constructor(
+    private readonly consultaApiService: ConsultaApiService
+  ) { }
 
   @Get("/horas")
   async consultaApi() {
@@ -15,6 +17,12 @@ export class ConsultaApiController {
   async consultaApiP(@Query() params: GetConsultaParams) {
     return await this.consultaApiService.consultarHorasParams(params);
   }
+
+  @Get("/usuario/listado")
+  async getUsuariosListado() {
+    return await this.consultaApiService.getUsuariosActivos();
+  }
+
 
 
 }

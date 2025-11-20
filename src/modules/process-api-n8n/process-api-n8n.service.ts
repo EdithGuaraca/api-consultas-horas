@@ -124,6 +124,9 @@ export class ProcessApiN8nService {
           if (horas.count == 0) {
             await this._slackApiService.postMessage({ canal: userId.user, texto: `🔴🔴 Hola ${userId.real_name} 👋, no olvides cargar tus horas. ⏰🗓️` });
 
+          } else {
+            await this._slackApiService.postMessage({ canal: userId.user, texto: `🟢🟢 Hola ${userId.real_name} 👋, Estas al dia con tu registro de horas. Buen tabajo ✅✅` });
+
           }
           // para evitar rate‐limit
           await this.delay(1000); //1s

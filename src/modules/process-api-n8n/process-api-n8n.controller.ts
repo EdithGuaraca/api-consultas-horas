@@ -8,7 +8,7 @@ export class ProcessApiN8nController {
 
   @Post("/enviar-alerta")
   async postMessageByUser() {
-    return await this._processApiN8nService.postMessageByUser();
+    return await this._processApiN8nService.postMessageBack();
   }
 
 

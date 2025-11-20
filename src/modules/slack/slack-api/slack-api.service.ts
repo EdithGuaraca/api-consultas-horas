@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { WebClient } from '@slack/web-api';
 import { SessionService } from 'src/modules/db/session/session.service';
-import { ConversationOpenDto, EnviarExcel, GetUserInfo, LookupByEmailDto, PostMessageDto } from './dto/slack-api.dto';
+import { ConversationMembersDto, ConversationOpenDto, EnviarExcel, GetUserInfo, LookupByEmailDto, PostMessageDto } from './dto/slack-api.dto';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as fs from 'fs';
@@ -183,13 +183,24 @@ export class SlackApiService {
 
   }
 
-  async getUserInfo(params: GetUserInfo) {
+  async getInfoByUserId(params: GetUserInfo) {
 
     try {
       //const registro = await this._session.findByUser(params.userId);
       const result = await this.client.users.info({ user: params.userId });
-      return { display_name: result.user?.profile?.display_name, real_name: result.user?.profile?.real_name, email: result.user?.profile?.email }
-      console.log(result.user?.profile?.first_name);
+      return {
+        display_name: result.user?.profile?.display_name,
+        real_name: result.user?.profile?.real_name,
+        email: result.user?.profile?.email,
+        first_name: result.user?.profile?.first_name ? result.user?.profile?.first_name : '',
+        last_name: result.user?.profile?.last_name ? result.user?.profile?.last_name : '',
+        name: result.user?.name,
+        is_email_confirmed: result.user?.is_email_confirmed
+
+
+      }
+
+
     } catch (error) {
       console.log('**Error en desencriptar: ', error, '**');
       throw new HttpException('Error al desencriptar', HttpStatus.BAD_REQUEST);
@@ -378,37 +389,47 @@ export class SlackApiService {
     }
   }
 
-  //api para obtener la data usando mail como parametro
 
-  // api para obtener la data usando mail como parametro
   async lookupByEmail(params: LookupByEmailDto) {
     try {
       const resultado = await this.client.users.lookupByEmail({
         email: params.email,
       });
 
-      // si llegó aquí es porque NO hubo error (usuario encontrado)
-      return resultado; // resultado.user...
+      return resultado;
 
     } catch (error: any) {
-      // 👇 AQUÍ se maneja el caso de usuario no encontrado
       const slackError = error?.data?.error ?? error?.message;
 
       if (slackError === 'users_not_found') {
         this.logger.warn(
           `Slack users.lookupByEmail: usuario no encontrado para ${params.email}`,
         );
-        // 🔹 No lanzamos excepción, devolvemos null para que el flujo siga
         return null;
       }
 
-      // 👇 Cualquier otro error sí es excepción
       this.logger.error(
         `Error en lookupByEmail(${params.email}): ${slackError}`,
       );
 
       throw new HttpException(
         `Error en lookupByEmail: ${slackError}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  async conversationMembers(params: ConversationMembersDto) {
+    try {
+      const resultado = await this.client.conversations.members({
+        channel: params.channel,
+      });
+
+      return resultado;
+
+    } catch (error) {
+      throw new HttpException(
+        `Error en conversationMembers: ${error}`,
         HttpStatus.BAD_REQUEST,
       );
     }

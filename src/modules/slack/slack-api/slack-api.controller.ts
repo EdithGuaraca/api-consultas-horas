@@ -11,7 +11,7 @@ export class SlackApiController {
 
   @Get('/getUserInfo')
   async desencriptar(@Query() params: GetUserInfo) {
-    return this._slackApiService.getUserInfo(params)
+    return this._slackApiService.getInfoByUserId(params)
   }
 
   @Get('/getUserInfo2')

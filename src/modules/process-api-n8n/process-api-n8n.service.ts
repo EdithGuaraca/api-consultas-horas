@@ -56,6 +56,55 @@ export class ProcessApiN8nService {
       //   }
       // }
 
+      const usuariosCuenca = await this._slackApiService.conversationMembers({ channel: `${process.env.CANAL_CUENCA}` });
+      const listCanalCuenca: GetInfoUserSlackByMailDto[] = [];
+
+      if (!usuariosCuenca.ok || !usuariosCuenca.members) {
+        throw new Error('No se pudieron obtener los miembros del canal Cuenca');
+      }
+
+      for (const i of usuariosCuenca.members) {
+        const resultado = await this._slackApiService.getInfoByUserId({ userId: i });
+        const dataCg = await this._apiConsultoriaGService.getUsuariosListadoCompleto();
+        const user = dataCg.Dato.find(e => e.mail === resultado.email);
+
+        const usuarioSlack: GetInfoUserSlackByMailDto = {
+          user: i,
+          name: resultado.name,
+          real_name: resultado.real_name,
+          first_name: resultado.first_name,
+          last_name: resultado.last_name,
+          display_name: resultado.display_name,
+          email: resultado.email,
+          is_email_confirmed: resultado.is_email_confirmed,
+          id_cg: user?.id_usuario ?? 0.0,
+        }
+        listCanalCuenca.push(usuarioSlack);
+      }
+      listCanalCuenca.push(
+        {
+          user: 'UHN63E2J0',
+          name: 'imoreno',
+          real_name: 'Ismar Moreno',
+          first_name: 'Ismar',
+          last_name: 'Moreno',
+          display_name: 'Ismar Moreno',
+          email: 'imoreno@consultoriaglobal.com.ar',
+          is_email_confirmed: true,
+          id_cg: 325
+        },
+        {
+          user: 'U07H631M1RS',
+          name: 'fcacace',
+          real_name: 'Federico Cacace',
+          first_name: 'Federico',
+          last_name: 'Cacace',
+          display_name: 'Federico Cacace',
+          email: 'fcacace@consultoriaglobal.com.ar',
+          is_email_confirmed: true,
+          id_cg: 529
+        }
+      )
 
       const usuariosPrueba = [
         {
@@ -69,28 +118,28 @@ export class ProcessApiN8nService {
           is_email_confirmed: true,
           id_cg: 557
         },
-        {
-          user: 'UDE8G465D',
-          name: 'psaavedra',
-          real_name: 'Pablo Saavedra',
-          first_name: 'Pablo',
-          last_name: 'Saavedra',
-          display_name: 'Pablo Saavedra',
-          email: 'psaavedra@consultoriaglobal.com.ar',
-          is_email_confirmed: true,
-          id_cg: 249
-        },
-        {
-          user: 'UF22Q8EQM',
-          name: 'fwalvarez',
-          real_name: 'Fredi Alvarez',
-          first_name: '',
-          last_name: '',
-          display_name: 'Fredi Alvarez',
-          email: 'fwalvarez@consultoriaglobal.com.ar',
-          is_email_confirmed: true,
-          id_cg: 250
-        },
+        // {
+        //   user: 'UDE8G465D',
+        //   name: 'psaavedra',
+        //   real_name: 'Pablo Saavedra',
+        //   first_name: 'Pablo',
+        //   last_name: 'Saavedra',
+        //   display_name: 'Pablo Saavedra',
+        //   email: 'psaavedra@consultoriaglobal.com.ar',
+        //   is_email_confirmed: true,
+        //   id_cg: 249
+        // },
+        // {
+        //   user: 'UF22Q8EQM',
+        //   name: 'fwalvarez',
+        //   real_name: 'Fredi Alvarez',
+        //   first_name: '',
+        //   last_name: '',
+        //   display_name: 'Fredi Alvarez',
+        //   email: 'fwalvarez@consultoriaglobal.com.ar',
+        //   is_email_confirmed: true,
+        //   id_cg: 250
+        // },
         // {
         //   user: 'UF22Q8EQM',
         //   name: 'amolina',
@@ -106,8 +155,7 @@ export class ProcessApiN8nService {
       ]
 
 
-
-      for (const userId of usuariosPrueba) {
+      for (const userId of listCanalCuenca) {
         try {
           const hoy = new Date();
           const ayer = new Date(hoy);
@@ -117,24 +165,47 @@ export class ProcessApiN8nService {
           const mm = String(ayer.getMonth() + 1).padStart(2, '0');
           const dd = String(ayer.getDate()).padStart(2, '0');
 
-          const fechaAyer = `${yyyy}${mm}${dd}`; // ejemplo: 20251118
+          const fechaAyer = `${yyyy}${mm}${dd}`; // formato de parametro 20251118
 
           const horas = await this._consultaApiService.consultarHorasParams({ fechaDesde: fechaAyer, fechaHasta: fechaAyer, horasExtras: 'false', idProyecto: 'T', idUsuario: userId.id_cg.toString() })
           console.log(`El usuario ${userId.display_name}-${userId.id_cg} tiene ${horas.count} registros de la fecha: ${fechaAyer}`);
-          if (horas.count == 0) {
-            await this._slackApiService.postMessage({ canal: userId.user, texto: `🔴🔴 Hola ${userId.real_name} 👋, no olvides cargar tus horas. ⏰🗓️` });
+          const recordatorios = [
+            `🔴🔴 Hola ${userId.real_name} 👋, notamos que aún no has cargado tus tareas de ayer. Cuando puedas, súbelas para mantener tu registro al día. ⏰🗓️`,
+            `🔴🔴 Hola ${userId.real_name} 👋, te recordamos que no registraste tus tareas del día anterior. Por favor, actualízalas para que tu progreso quede completo. ⏰🗓️`,
+            `🔴🔴 Hola ${userId.real_name} 👋, aún no cargaste las tareas de ayer. Tómate un momento para añadirlas y seguir al día con tus actividades. ⏰🗓️`,
+            `🔴🔴 Hola ${userId.real_name} 👋, parece que las tareas de ayer no fueron ingresadas. Actualízalas cuando tengas un momento. ⏰🗓️`,
+            `🔴🔴 Hola ${userId.real_name} 👋, te recordamos que no cargaste tus tareas del día anterior. Por favor, súbelas para evitar retrasos en tu seguimiento. ⏰🗓️`,
+            `🔴🔴 Hola ${userId.real_name} 👋, ayer no registraste tareas. Cuando puedas, añádelas para mantener tu planificación actualizada. ⏰🗓️`
+          ];
+          const indexR = Math.floor(Math.random() * recordatorios.length);
 
-          } else {
-            await this._slackApiService.postMessage({ canal: userId.user, texto: `🟢🟢 Hola ${userId.real_name} 👋, Estas al dia con tu registro de horas. Buen tabajo ✅✅` });
+          const felicitaciones = [
+            `🟢🟢 Hola ${userId.real_name} 👋, excelente trabajo manteniendo tus tareas al día. ¡Sigue así! 💪✨`,
+            `🟢🟢 Hola ${userId.real_name} 👋, revisamos tu registro y estás completamente al día. ¡Muy bien hecho! 🙌📘`,
+            `🟢🟢 Hola ${userId.real_name} 👋, felicidades por mantenerte al día con tus tareas. ¡Excelente! ⭐📊`,
+            `🟢🟢 Hola ${userId.real_name} 👋, vas muy bien. Gracias por mantener tu registro de tareas al día. ¡Sigue brillando! ✨💼`,
+            `🟢🟢 Hola ${userId.real_name} 👋, ¡todo en orden! Gracias por mantener tus tareas al día. 😊📋`,
+            `🟢🟢 Hola ${userId.real_name} 👋, ¡lo estás haciendo genial! Gracias por mantener tus tareas actualizadas 🥰📘`,
+          ];
 
+
+
+          if (userId.user) {
+            if (horas.count == 0) {
+
+              await this._slackApiService.postMessage({ canal: userId.user, texto: `${recordatorios[indexR]}` });
+
+            } else {
+              await this._slackApiService.postMessage({ canal: userId.user, texto: `${felicitaciones[indexR]}` });
+
+            }
           }
-          // para evitar rate‐limit
-          await this.delay(1000); //1s
+          await this.delay(1000); //1s rate-limit
         } catch (error) {
         }
       }
 
-      return usuariosPrueba;
+      return listCanalCuenca;
 
     } catch (error) {
       console.log(error)
@@ -142,5 +213,19 @@ export class ProcessApiN8nService {
   }
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async postMessageBack() {
+    setImmediate(() => {
+      this.postMessageByUser()
+        .then(() => console.log('Proceso terminado'))
+        .catch(err => console.error('Error en proceso', err));
+    });
+
+    return {
+      status: 'ok',
+      message: 'Proceso ejecutándose en background'
+    };
+
   }
 }

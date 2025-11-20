@@ -25,3 +25,9 @@ export class ConversationOpenDto {
 export class LookupByEmailDto {
   email: string;
 }
+
+
+
+export class ConversationMembersDto {
+  channel: string;
+}

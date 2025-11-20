@@ -37,28 +37,24 @@ export class ProcessApiN8nService {
       }
       const listInfoUserSlack: GetInfoUserSlackByMailDto[] = [];
 
-      for (const i of listActivos) {
-        const resultado = await this._slackApiService.lookupByEmail({ email: i.mail });
-        if (resultado?.ok === true) {
-          const usuarioSlack: GetInfoUserSlackByMailDto = {
-            user: resultado.user?.id,
-            name: resultado.user?.name,
-            real_name: resultado.user?.real_name,
-            first_name: resultado.user?.profile?.first_name,
-            last_name: resultado.user?.profile?.last_name,
-            display_name: resultado.user?.profile?.display_name,
-            email: resultado.user?.profile?.email,
-            is_email_confirmed: resultado.user?.is_email_confirmed,
-            id_cg: i.id_usuario
-          }
-          console.log(resultado);
-          listInfoUserSlack.push(usuarioSlack);
-        }
-
-
-      }
-      console.log(listInfoUserSlack);
-
+      // for (const i of listActivos) {
+      //   const resultado = await this._slackApiService.lookupByEmail({ email: i.mail });
+      //   if (resultado?.ok === true) {
+      //     const usuarioSlack: GetInfoUserSlackByMailDto = {
+      //       user: resultado.user?.id,
+      //       name: resultado.user?.name,
+      //       real_name: resultado.user?.real_name,
+      //       first_name: resultado.user?.profile?.first_name,
+      //       last_name: resultado.user?.profile?.last_name,
+      //       display_name: resultado.user?.profile?.display_name,
+      //       email: resultado.user?.profile?.email,
+      //       is_email_confirmed: resultado.user?.is_email_confirmed,
+      //       id_cg: i.id_usuario
+      //     }
+      //     console.log(resultado);
+      //     listInfoUserSlack.push(usuarioSlack);
+      //   }
+      // }
 
 
       const usuariosPrueba = [
@@ -73,28 +69,39 @@ export class ProcessApiN8nService {
           is_email_confirmed: true,
           id_cg: 557
         },
-        // {
-        //   user: 'UDE8G465D',
-        //   name: 'psaavedra',
-        //   real_name: 'Pablo Saavedra',
-        //   first_name: 'Pablo',
-        //   last_name: 'Saavedra',
-        //   display_name: 'Pablo Saavedra',
-        //   email: 'psaavedra@consultoriaglobal.com.ar',
-        //   is_email_confirmed: true,
-        //    id_cg: 249
-        // },
-        // {
-        //   user: 'UF22Q8EQM',
-        //   name: 'fwalvarez',
-        //   real_name: 'Fredi Alvarez',
-        //   first_name: '',
-        //   last_name: '',
-        //   display_name: 'Fredi Alvarez',
-        //   email: 'fwalvarez@consultoriaglobal.com.ar',
-        //   is_email_confirmed: true,
-        //    id_cg: 250
-        // }
+        {
+          user: 'UDE8G465D',
+          name: 'psaavedra',
+          real_name: 'Pablo Saavedra',
+          first_name: 'Pablo',
+          last_name: 'Saavedra',
+          display_name: 'Pablo Saavedra',
+          email: 'psaavedra@consultoriaglobal.com.ar',
+          is_email_confirmed: true,
+          id_cg: 249
+        },
+        {
+          user: 'UF22Q8EQM',
+          name: 'fwalvarez',
+          real_name: 'Fredi Alvarez',
+          first_name: '',
+          last_name: '',
+          display_name: 'Fredi Alvarez',
+          email: 'fwalvarez@consultoriaglobal.com.ar',
+          is_email_confirmed: true,
+          id_cg: 250
+        },
+        {
+          user: 'UF22Q8EQM',
+          name: 'amolina',
+          real_name: 'Andres Molina',
+          first_name: 'Andres',
+          last_name: 'Molina',
+          display_name: 'Andres Molina',
+          email: 'amolina@consultoriaglobal.com.ar',
+          is_email_confirmed: true,
+          id_cg: 268
+        },
 
       ]
 
@@ -112,10 +119,10 @@ export class ProcessApiN8nService {
 
           const fechaAyer = `${yyyy}${mm}${dd}`; // ejemplo: 20251118
 
-          console.log(fechaAyer);
           const horas = await this._consultaApiService.consultarHorasParams({ fechaDesde: fechaAyer, fechaHasta: fechaAyer, horasExtras: 'false', idProyecto: 'T', idUsuario: userId.id_cg.toString() })
+          console.log(`El usuario ${userId.display_name}-${userId.id_cg} tiene ${horas.count} registros de la fecha: ${fechaAyer}`);
           if (horas.count == 0) {
-            await this._slackApiService.postMessage({ canal: userId.user, texto: `Hola ${userId.real_name} 👋, recuerda cargar tus horas. ` });
+            await this._slackApiService.postMessage({ canal: userId.user, texto: `🔴🔴 Hola ${userId.real_name} 👋, no olvides cargar tus horas. ⏰🗓️` });
 
           }
           // para evitar rate‐limit
@@ -124,7 +131,7 @@ export class ProcessApiN8nService {
         }
       }
 
-      return listInfoUserSlack;
+      return usuariosPrueba;
 
     } catch (error) {
       console.log(error)

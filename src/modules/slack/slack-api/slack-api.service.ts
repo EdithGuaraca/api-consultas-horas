@@ -1,6 +1,5 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { WebClient } from '@slack/web-api';
-import { SessionService } from 'src/modules/db/session/session.service';
 import { ConversationMembersDto, ConversationOpenDto, EnviarExcel, GetUserInfo, LookupByEmailDto, PostMessageDto } from './dto/slack-api.dto';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
@@ -19,7 +18,7 @@ export class SlackApiService {
 
   constructor(
 
-    private readonly _session: SessionService, private readonly httpService: HttpService) {
+    private readonly httpService: HttpService) {
     this.client = new WebClient(`${process.env.SLACK_BOT_TOKEN}`);
   }
 

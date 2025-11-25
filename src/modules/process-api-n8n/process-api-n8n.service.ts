@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { SlackApiService } from '../slack/slack-api/slack-api.service';
 import { ApiConsultoriaGService } from '../api-consultoria-g/api-consultoria-g.service';
 import { GetUsuariosListadoDto } from '../consulta-api-cg/dto/consulta-api.dto';
-import { GetInfoUserSlackByMailDto } from './dto/process-api.dto';
+import { GetInfoUserSlackByMailDto, ProyectoByNombreDto, UsuarioByNombreDto } from './dto/process-api.dto';
 import { channel } from 'diagnostics_channel';
 import { ConsultaApiService } from '../consulta-api-cg/consulta-api.service';
+import { normalizar } from '../utils/string-utils';
+import { DatoUsuarioListCompletoDto, UsuarioListadoCompletoDto } from '../api-consultoria-g/dto/api-consultoria-g.dto';
 @Injectable()
 export class ProcessApiN8nService {
 
@@ -184,7 +186,7 @@ export class ProcessApiN8nService {
             `🟢🟢 Hola ${userId.real_name} 👋, felicidades por mantenerte al día con tus tareas. ¡Excelente! ⭐📊`,
             `🟢🟢 Hola ${userId.real_name} 👋, vas muy bien. Gracias por mantener tu registro de tareas al día. ¡Sigue brillando! ✨💼`,
             `🟢🟢 Hola ${userId.real_name} 👋, ¡todo en orden! Gracias por mantener tus tareas al día. 😊📋`,
-            `🟢🟢 Hola ${userId.real_name} 👋, ¡lo estás haciendo genial! Gracias por mantener tus tareas actualizadas 🥰📘`,
+            `🟢🟢 Hola ${userId.real_name} 👋, ¡lo estás haciendo genial! Gracias por mantener tus tareas actualizadas ✨📘`,
           ];
 
 
@@ -192,10 +194,10 @@ export class ProcessApiN8nService {
           if (userId.user) {
             if (horas.count == 0) {
 
-              await this._slackApiService.postMessage({ canal: userId.user, texto: `${recordatorios[indexR]}` });
+              //await this._slackApiService.postMessage({ canal: userId.user, texto: `${recordatorios[indexR]}` });
               console.log(`${recordatorios[indexR]}`)
             } else {
-              await this._slackApiService.postMessage({ canal: userId.user, texto: `${felicitaciones[indexR]}` });
+              //await this._slackApiService.postMessage({ canal: userId.user, texto: `${felicitaciones[indexR]}` });
               console.log(`${felicitaciones[indexR]}`)
             }
           }
@@ -227,4 +229,59 @@ export class ProcessApiN8nService {
     };
 
   }
+
+
+  async getUsuarioByNombre(nombre: string) {
+    try {
+      const listaUsuarios = await this._apiConsultoriaGService.getUsuariosListadoCompleto();
+
+      const usuarios = listaUsuarios.Dato.filter(r => {
+        const nombre_apellido = normalizar(r.nombre_apellido);
+        return nombre_apellido.includes(normalizar(nombre))
+      });
+      const listUsersByNombre: UsuarioByNombreDto[] = [];
+      usuarios.map(e => {
+        listUsersByNombre.push({
+          id_usuario: e.id_usuario,
+          nombre_apellido: e.nombre_apellido,
+          mail: e.mail,
+          activo: e.activo
+        })
+      })
+      return listUsersByNombre;
+
+    } catch (error) {
+      throw new HttpException(
+        error.message ? error.message : "Error en getUsuarioByNombre",
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  async getProyectosByNombre(nombre: string) {
+    try {
+      const listaProyectos = await this._apiConsultoriaGService.getCatalogoProyectos();
+
+      const usuarios = listaProyectos.Dato.filter(r => {
+        const nombreProyecto = normalizar(r.proyecto);
+        return nombreProyecto.includes(normalizar(nombre))
+      });
+      const listProyectoByNombre: ProyectoByNombreDto[] = [];
+      usuarios.map(e => {
+        listProyectoByNombre.push({
+          id_proyecto: e.id_proyecto,
+          nombre: e.proyecto,
+          mail: e.mail,
+          area: e.area
+        })
+      })
+      return listProyectoByNombre;
+
+    } catch (error) {
+      throw new HttpException(`Error en getProyectosByNombre: ${error.message}`,
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
 }

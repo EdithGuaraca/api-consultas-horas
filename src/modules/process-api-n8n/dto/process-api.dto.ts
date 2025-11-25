@@ -9,3 +9,22 @@ export class GetInfoUserSlackByMailDto {
   last_name?: string;
   id_cg: number;
 }
+
+
+export class GetUsuarioByNombreDto {
+  nombre: string;
+}
+
+export class UsuarioByNombreDto {
+  id_usuario: number;
+  nombre_apellido: string;
+  mail: string;
+  activo: boolean;
+}
+
+export class ProyectoByNombreDto {
+  id_proyecto: number;
+  nombre: string;
+  area: string;
+  mail: string;
+}

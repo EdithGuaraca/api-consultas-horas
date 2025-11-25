@@ -33,3 +33,12 @@ export function getIva(texto: string) {
   const resultado = texto.match(regex);
   return resultado && parseInt(resultado[0], 10);
 }
+
+
+export function normalizar(str: string) {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}

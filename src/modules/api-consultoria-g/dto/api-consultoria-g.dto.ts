@@ -39,3 +39,23 @@ export class DatoUsuarioListadoDto {
   nombreApellido: string;
   nombre_usuario: string;
 }
+
+export class CatalogoProyectosDto {
+  Codigo: number;
+  Dato: DatoCatalogoProyectosDto[];
+  Msg: string;
+  ErroresValidacion: null;
+}
+
+export class DatoCatalogoProyectosDto {
+  id_proyecto: number;
+  proyecto: string;
+  area: string;
+  descripcion: string;
+  id_area: number;
+  id_entidad: number;
+  cerrado: boolean;
+  mail: string;
+  usuario_modificacion: null;
+}
+

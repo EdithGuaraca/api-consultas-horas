@@ -194,10 +194,10 @@ export class ProcessApiN8nService {
           if (userId.user) {
             if (horas.count == 0) {
 
-              await this._slackApiService.postMessage({ canal: userId.user, texto: `${recordatorios[indexR]}` });
+              //await this._slackApiService.postMessage({ canal: userId.user, texto: `${recordatorios[indexR]}` });
               console.log(`${recordatorios[indexR]}`)
             } else {
-              await this._slackApiService.postMessage({ canal: userId.user, texto: `${felicitaciones[indexR]}` });
+              //await this._slackApiService.postMessage({ canal: userId.user, texto: `${felicitaciones[indexR]}` });
               console.log(`${felicitaciones[indexR]}`)
             }
           }
